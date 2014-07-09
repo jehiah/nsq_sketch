@@ -3,7 +3,7 @@
 package main
 
 import (
-	"bitly/nsq"
+	"github.com/bitly/go-nsq"
 	"flag"
 	"fmt"
 	"github.com/bitly/go-simplejson"
@@ -145,7 +145,7 @@ func main() {
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Printf("nsq_sketch v%s\n", VERSION)
+		fmt.Printf("nsq_sketch v%s go-nsq/%s\n", VERSION, nsq.VERSION)
 		return
 	}
 
@@ -193,12 +193,13 @@ func main() {
 		log.SetOutput(ioutil.Discard)
 	}
 
-	r, err := nsq.NewReader(*topic, *channel)
+        cfg := nsq.NewConfig()
+        cfg.MaxInFlight = *maxInFlight
+
+	r, err := nsq.NewConsumer(*topic, *channel, cfg)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	r.SetMaxInFlight(*maxInFlight)
-	r.VerboseLogging = *verbose
 
 	r.AddHandler(s)
 
@@ -211,20 +212,15 @@ func main() {
 		}
 	}()
 
-	for _, addrString := range nsqdTCPAddrs {
-		err := r.ConnectToNSQ(addrString)
-		if err != nil {
-			log.Fatalf(err.Error())
-		}
-	}
-
-	for _, addrString := range lookupdHTTPAddrs {
-		log.Printf("lookupd addr %s", addrString)
-		err := r.ConnectToLookupd(addrString)
-		if err != nil {
-			log.Fatalf(err.Error())
-		}
-	}
-
-	<-r.ExitChan
+        err = r.ConnectToNSQs(nsqdTCPAddrs)
+        if err != nil {
+            log.Fatalf("%s", err)
+        }
+        
+        err = r.ConnectToNSQLookupds(lookupdHTTPAddrs)
+        if err != nil {
+            log.Fatalf("%s", err)
+        }
+        
+	<-r.CloseChan
 }
