@@ -3,9 +3,9 @@
 package main
 
 import (
-	"github.com/bitly/go-nsq"
 	"flag"
 	"fmt"
+	"github.com/bitly/go-nsq"
 	"github.com/bitly/go-simplejson"
 	"github.com/jehiah/countmin"
 	"io/ioutil"
@@ -193,8 +193,8 @@ func main() {
 		log.SetOutput(ioutil.Discard)
 	}
 
-        cfg := nsq.NewConfig()
-        cfg.MaxInFlight = *maxInFlight
+	cfg := nsq.NewConfig()
+	cfg.MaxInFlight = *maxInFlight
 
 	r, err := nsq.NewConsumer(*topic, *channel, cfg)
 	if err != nil {
@@ -212,15 +212,15 @@ func main() {
 		}
 	}()
 
-        err = r.ConnectToNSQs(nsqdTCPAddrs)
-        if err != nil {
-            log.Fatalf("%s", err)
-        }
-        
-        err = r.ConnectToNSQLookupds(lookupdHTTPAddrs)
-        if err != nil {
-            log.Fatalf("%s", err)
-        }
-        
-	<-r.CloseChan
+	err = r.ConnectToNSQDs(nsqdTCPAddrs)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	err = r.ConnectToNSQLookupds(lookupdHTTPAddrs)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
+	<-r.StopChan
 }
