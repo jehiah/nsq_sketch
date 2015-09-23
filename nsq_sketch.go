@@ -5,9 +5,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/bitly/go-nsq"
-	"github.com/bitly/go-simplejson"
-	"github.com/jehiah/countmin"
 	"io/ioutil"
 	"log"
 	"os"
@@ -16,6 +13,10 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/bitly/go-simplejson"
+	"github.com/jehiah/countmin"
+	"github.com/nsqio/go-nsq"
 )
 
 const VERSION = "0.1"
