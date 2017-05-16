@@ -28,6 +28,7 @@ var (
 	topN                  = flag.Int("top", 15, "show the top N entries")
 	sketchWidth           = flag.Int("width", 7, "Number of sketch hash functions to use")
 	sketchHeight          = flag.Int("height", 20000, "Number of elements in each sketch array")
+	iterations            = flag.Int("iterations", -1, "Number of iterations")
 
 	topic            = flag.String("topic", "", "nsq topic")
 	channel          = flag.String("channel", "sketch#ephemeral", "nsq channel")
@@ -118,9 +119,11 @@ func (s *SketchHandler) HandleMessage(m *nsq.Message) error {
 	return nil
 }
 
-func (s *SketchHandler) TimerLoop(d time.Duration, r time.Duration) {
+func (s *SketchHandler) TimerLoop(d time.Duration, r time.Duration, iterations int, termChan chan<- os.Signal) {
 	displayTicker := time.NewTicker(d)
 	resetTicker := time.NewTicker(r)
+
+	i := 0
 	for {
 		select {
 		case <-resetTicker.C:
@@ -132,12 +135,18 @@ func (s *SketchHandler) TimerLoop(d time.Duration, r time.Duration) {
 			s.Unlock()
 		case <-displayTicker.C:
 			fmt.Fprintf(os.Stdout, "\n----- %d messages ----\n", s.messageCount)
+
 			s.Lock()
 			sort.Sort(HeavyHittersByValue{s.HeavyHitters})
 			for _, h := range s.HeavyHitters {
 				fmt.Fprintf(os.Stdout, "%d - %s\n", h.Value, h.Key)
 			}
+			i++
 			s.Unlock()
+		}
+
+		if i == iterations {
+			termChan <- syscall.SIGTERM
 		}
 	}
 }
@@ -204,7 +213,7 @@ func main() {
 
 	r.AddHandler(s)
 
-	go s.TimerLoop(displayInterval, resetInterval)
+	go s.TimerLoop(displayInterval, resetInterval, *iterations, termChan)
 
 	go func() {
 		select {
