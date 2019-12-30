@@ -19,7 +19,7 @@ import (
 	"github.com/nsqio/go-nsq"
 )
 
-const VERSION = "0.1"
+const VERSION = "1.0.0"
 
 var (
 	sketchKey             = flag.String("key", "", "key to extract from message and sketch")
